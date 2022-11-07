@@ -197,4 +197,4 @@ complete_f.close()
 #print("file making success![complete]")
 
 print("elapsed time : ",end='')
-print(f"{time.time()-start:.4f} sec")
+print(f"{time.time()-start:.6f} sec")
