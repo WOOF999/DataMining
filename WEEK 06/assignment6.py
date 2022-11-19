@@ -12,7 +12,7 @@ jaccard_index_list=list()
 final_cluster=list()
 vertex_list=list()
 ###checkehcekchekckehcke
-density_threshold=0.5
+density_threshold=0.4
 #(density) = (the number of edges) / (the number of nodes)
 #jaccard index = A | B / A U B
 
@@ -37,8 +37,15 @@ def BFS(graph, start):
         node = adjacency_nodes.popleft()
         if node not in visited_nodes:
             visited_nodes.append(node)
-            adjacency_nodes.extend(graph[node])
+            adjacency_nodes=check_adjacency_nodes(adjacency_nodes,node)
     return visited_nodes
+
+def check_adjacency_nodes(adjacency_nodes,node):
+    for vertex in G[node]:
+        if vertex not in adjacency_nodes:
+            adjacency_nodes.append(vertex)
+    return adjacency_nodes
+
 
 def check_BFS():
     isDisconnected=False
@@ -47,7 +54,10 @@ def check_BFS():
     visited_vertex=BFS(G,vertex_list[0])
 
     #if too slow.. make set?
-    left_vertex = [x for x in vertex_list if x not in visited_vertex]
+    visited_vertex_set=set(visited_vertex)
+    vertex_list_set=set(vertex_list)
+    left_vertex=list(vertex_list_set-visited_vertex_set)
+    #left_vertex = [x for x in vertex_list if x not in visited_vertex]
     
     if len(left_vertex)==0 and calculate_density(visited_vertex)>density_threshold:
         make_final_cluster(visited_vertex)
@@ -71,7 +81,10 @@ def check_BFS():
         if visited_vertex==vertex_list:
             isDisconnected=False
             break
-        left_vertex = [x for x in vertex_list if x not in visited_vertex]
+        visited_vertex_set=set(visited_vertex)
+        vertex_list_set=set(vertex_list)
+        left_vertex=list(vertex_list_set-visited_vertex_set)
+        #left_vertex = [x for x in vertex_list if x not in visited_vertex]
     return isDisconnected
 
 
@@ -130,7 +143,10 @@ def check_jaccard_list():
                 #delete edge
                 G[set[0]].remove(set[1])
                 G[set[1]].remove(set[0])
-                
+                if len(G[set[0]])==0:
+                    G.pop(set[0])
+                if len(G[set[1]])==0:
+                    G.pop(set[1])
                 check=check_BFS()
                 if check:
                     return
@@ -145,19 +161,23 @@ def make_vertex_list():
     vertex_list.sort()
 
 def make_final_cluster(subGraph):
-    final_cluster.append(subGraph)
+    if len(subGraph)>9:
+        final_cluster.append(subGraph)
     for key in subGraph:
         G.pop(key, None)   
 
 def main():
     make_vertex_list()
     check_BFS()
+    
 
     while G:
         check_jaccard_list()
         print(len(G))
         print(final_cluster)
-  
+    
+    final_cluster.sort(key=len,reverse=True)
+    
     cluster_f=open('assignment6output.txt','a')
     for cluster in final_cluster:
         cluster_f.write(str(len(cluster)))
