@@ -1,7 +1,4 @@
 #2021245044 소프트웨어학부 서은하
-import matplotlib.pyplot as plt
-import numpy as np
-import csv
 import time
 from collections import deque
 import sys
@@ -15,12 +12,12 @@ jaccard_index_list=list()
 final_cluster=list()
 vertex_list=list()
 ###checkehcekchekckehcke
-density_threshold=0.6
+density_threshold=0.5
 #(density) = (the number of edges) / (the number of nodes)
 #jaccard index = A | B / A U B
 
 #make graph
-with open("test.txt",'r') as file:
+with open("gene.txt",'r') as file:
     for line in file:
         n1,n2=line.strip().split('\t')
         try:
@@ -31,16 +28,6 @@ with open("test.txt",'r') as file:
             G[n2].add(n1)
         except KeyError:
             G[n2]={n1}
-
-def calculate_jaccard_index(sub1,sub2):
-    list1=list(G[sub1])
-    list1.append(sub1)
-    set1=set(list1)
-    list2=list(G[sub2])
-    list2.append(sub2)
-    set2=set(list2)
-
-    return float(len(set1.intersection(set2))/len(set1.union(set2)))
 
 def BFS(graph, start):
     visited_nodes = []
@@ -56,20 +43,45 @@ def BFS(graph, start):
 def check_BFS():
     isDisconnected=False
     visited_vertex=[]
+    make_vertex_list()
     visited_vertex=BFS(G,vertex_list[0])
-    print(calculate_density(visited_vertex))
+
     #if too slow.. make set?
     left_vertex = [x for x in vertex_list if x not in visited_vertex]
+    
+    if len(left_vertex)==0 and calculate_density(visited_vertex)>density_threshold:
+        make_final_cluster(visited_vertex)
+        return isDisconnected
+
+    elif len(left_vertex)==1:
+        delete_single_vertex(left_vertex)
+        isDisconnected=True
+        return isDisconnected
+
+    visited_vertex.sort()
     while visited_vertex!=vertex_list:
         isDisconnected=True
-        visited_vertex=visited_vertex+BFS(G,left_vertex[0])
+        temp_vertex=BFS(G,left_vertex[0])
+        if calculate_density(temp_vertex)>density_threshold:
+            make_final_cluster(temp_vertex)
+            return isDisconnected
+        else:
+            visited_vertex=visited_vertex+temp_vertex
         visited_vertex.sort()
         if visited_vertex==vertex_list:
+            isDisconnected=False
             break
         left_vertex = [x for x in vertex_list if x not in visited_vertex]
+    return isDisconnected
+
+
+def delete_single_vertex(vertex):
+    G.pop(vertex[0], None)   
         
 def calculate_density(subGraph):
     vertex_num=len(subGraph)
+    if vertex_num==1:
+        return 0
     edge_num=0
     for node1 in range(vertex_num-1):
         for node2 in range(node1+1,vertex_num):
@@ -77,26 +89,18 @@ def calculate_density(subGraph):
                 edge_num+=1
     return 2*edge_num/(vertex_num*(vertex_num-1))
 
-def check_jaccard_list():
-    for set in jaccard_index_list:
-        if set[2]==0:
-            pass
-        else:
-            g_set=list(G[set[0]])
-            if set[1] in g_set:
-                #delete edge
-                G[set[0]].remove(set[1])
-                G[set[1]].remove(set[0])
-                
-                print(G)
-            else:
-                pass
-            
+def calculate_jaccard_index(sub1,sub2):
+    list1=list(G[sub1])
+    list1.append(sub1)
+    set1=set(list1)
+    list2=list(G[sub2])
+    list2.append(sub2)
+    set2=set(list2)
 
-
-
+    return float(len(set1.intersection(set2))/len(set1.union(set2)))  
 
 def make_jaccard_index_list():
+    jaccard_index_list.clear()
     temp=[]
     for key1 in G:
         for key2 in G:
@@ -110,18 +114,61 @@ def make_jaccard_index_list():
                 if tmp2 not in jaccard_index_list:
                     jaccard_index_list.append(tmp2)
     jaccard_index_list.sort(key=lambda x:x[2])
-    print(jaccard_index_list)
+
+
+
+def check_jaccard_list():
+    make_jaccard_index_list()
+    for set in jaccard_index_list:
+        if set[2]==0:
+            pass
+        else:
+            if not G:
+                return
+            g_set=list(G[set[0]])
+            if set[1] in g_set:
+                #delete edge
+                G[set[0]].remove(set[1])
+                G[set[1]].remove(set[0])
+                
+                check=check_BFS()
+                if check:
+                    return
+                
+            else:
+                pass
 
 def make_vertex_list():
+    vertex_list.clear()
     for key in G:
         vertex_list.append(key)
     vertex_list.sort()
 
+def make_final_cluster(subGraph):
+    final_cluster.append(subGraph)
+    for key in subGraph:
+        G.pop(key, None)   
+
 def main():
     make_vertex_list()
     check_BFS()
-    #make_jaccard_index_list()
-    #check_jaccard_list()
+
+    while G:
+        check_jaccard_list()
+        print(len(G))
+        print(final_cluster)
+  
+    cluster_f=open('assignment6output.txt','a')
+    for cluster in final_cluster:
+        cluster_f.write(str(len(cluster)))
+        cluster_f.write(": ")
+        for point in cluster:
+            cluster_f.write(point)
+            cluster_f.write(" ")
+        cluster_f.write("\n")
+    cluster_f.close()
+    print("elapsed time : ",end='')
+    print(f"{time.time()-start:.6f} sec")
 
     
 
